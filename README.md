@@ -14,3 +14,4 @@
 + DB: H2
 + Java 25
 + SpringBoot 4.2
++ thymeleaf
