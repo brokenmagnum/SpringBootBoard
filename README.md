@@ -1,4 +1,4 @@
-# SpringBootStudy
+# SpringBootBoard
 + http://localhost:8080/question/list
 + ID: user
 + PW: password
