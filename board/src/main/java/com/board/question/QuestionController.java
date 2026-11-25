@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
 import com.board.answer.AnswerForm;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.data.domain.Page;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,10 +26,9 @@ public class QuestionController {
     private final QuestionService questionService;
 
     @GetMapping("/list")
-    public String list(Model model) {
-        List<Question> questionList = this.questionService.getList();
-        // List<Question> questionList = this.questionRepository.findAll();
-        model.addAttribute("questionList", questionList);
+    public String list(Model model, @RequestParam(value="page", defaultValue="0") int page) {
+        Page<Question> paging = this.questionService.getList(page);
+        model.addAttribute("paging", paging);
         return "question_list";
     }
 
