@@ -1,15 +1,13 @@
 package com.board;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import com.board.answer.Answer;
 
