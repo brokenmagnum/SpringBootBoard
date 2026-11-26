@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+
+import com.board.CommonUtil;
 import com.board.answer.AnswerForm;
 import com.board.user.SiteUser;
 import com.board.user.UserService;
@@ -32,6 +34,7 @@ public class QuestionController {
     private final QuestionRepository questionRepository;
     private final QuestionService questionService;
     private final UserService userService;
+    private final CommonUtil commonUtil;
 
     @GetMapping("/list")
     public String list(Model model, @RequestParam(value = "page", defaultValue = "0") int page) {
@@ -44,6 +47,8 @@ public class QuestionController {
     public String detail(Model model, @PathVariable("id") Integer id, AnswerForm answerForm) {
         Question question = this.questionService.getQuestion(id);
         model.addAttribute("question", question);
+        model.addAttribute("questionHtml", commonUtil.markdown(question.getContent()));
+        model.addAttribute("answerHtmlById", commonUtil.renderAnswerHtmlById(question.getAnswerList()));
         return "question_detail";
     }
 
