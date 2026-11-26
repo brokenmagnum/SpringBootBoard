@@ -13,24 +13,24 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration(proxyBeanMethods = false)
 class H2ConsoleSecurityConfig {
 
-    @Bean
-    @Order(1)
-    SecurityFilterChain configureH2ConsoleSecurity(HttpSecurity http) throws Exception {
-        return http
-                .securityMatcher(PathRequest.toH2Console())
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .build();
-    }
+    // @Bean
+    // @Order(1)
+    // SecurityFilterChain configureH2ConsoleSecurity(HttpSecurity http) throws Exception {
+    //     return http
+    //             .securityMatcher(PathRequest.toH2Console())
+    //             .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+    //             .httpBasic(Customizer.withDefaults())
+    //             .csrf(csrf -> csrf.disable())
+    //             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+    //             .build();
+    // }
 
-    @Bean
-    SecurityFilterChain configureApplicationSecurity(HttpSecurity http) throws Exception {
-        return http
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .formLogin(Customizer.withDefaults())
-                .httpBasic(Customizer.withDefaults())
-                .build();
-    }
+    // @Bean
+    // SecurityFilterChain configureApplicationSecurity(HttpSecurity http) throws Exception {
+    //     return http
+    //             .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+    //             .formLogin(Customizer.withDefaults())
+    //             .httpBasic(Customizer.withDefaults())
+    //             .build();
+    // }
 }
