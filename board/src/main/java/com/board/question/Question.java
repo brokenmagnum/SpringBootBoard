@@ -1,6 +1,7 @@
 package com.board.question;
 
-import java.time.LocalDateTime; 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.board.answer.Answer;
@@ -20,6 +21,7 @@ import lombok.Setter;
 import jakarta.persistence.ManyToOne;
 import com.board.user.SiteUser;
 import java.util.Set;
+
 
 @Getter 
 @Setter 
@@ -47,5 +49,13 @@ public class Question {
 
     @ManyToMany
     Set<SiteUser> voter;
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionAttachment> attachments = new ArrayList<>();
+
+    void addAttachment(String filename, byte[] content) {
+        this.attachments.add(new QuestionAttachment(this, filename, content));
+    }
+
 }
 

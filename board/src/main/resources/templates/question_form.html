@@ -1,9 +1,11 @@
 <html layout:decorate="~{layout}">
 <div layout:fragment="content" class="container">
-    <h5 class="my-3 border-bottom pb-2">질문등록</h5>
-    <form th:object="${questionForm}" method="post">
+    <h5 class="my-3 border-bottom pb-2"
+        th:text="${questionId != null ? '질문 수정' : '질문 등록'}"></h5>
+    <form th:object="${questionForm}" method="post" enctype="multipart/form-data">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div th:replace="~{form_errors :: formErrorsFragment}"></div>
+
         <div class="mb-3">
             <label for="subject" class="form-label">제목</label>
             <input type="text" th:field="*{subject}" class="form-control">
@@ -11,6 +13,26 @@
         <div class="mb-3">
             <label for="content" class="form-label">내용</label>
             <textarea th:field="*{content}" class="form-control" rows="10"></textarea>
+        </div>
+
+        <fieldset class="mb-3" th:if="${attachments != null and !attachments.isEmpty()}">
+            <legend class="form-label fs-6">기존 첨부파일</legend>
+            <div class="form-check" th:each="attachment : ${attachments}">
+                <input class="form-check-input" type="checkbox" name="removeAttachmentIds"
+                       th:id="|remove-attachment-${attachment.id}|" th:value="${attachment.id}"
+                       th:checked="${questionForm.removeAttachmentIds.contains(attachment.id)}">
+                <label class="form-check-label" th:for="|remove-attachment-${attachment.id}|"
+                       th:text="|${attachment.originalFilename} 삭제|"></label>
+            </div>
+        </fieldset>
+
+        <div class="mb-3">
+            <label for="files" class="form-label">첨부파일</label>
+            <input type="file" id="files" name="files" class="form-control" multiple
+                   accept=".pdf,.png,.jpg,.jpeg,.txt" aria-describedby="attachment-help">
+            <div id="attachment-help" class="form-text">
+                기존 파일 포함 최대 3개, 파일당 1MB. PDF, PNG, JPG, JPEG, TXT를 첨부할 수 있습니다.
+            </div>
         </div>
         <input type="submit" value="저장하기" class="btn btn-primary my-2">
     </form>

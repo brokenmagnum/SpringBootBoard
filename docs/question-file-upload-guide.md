@@ -25,9 +25,14 @@ flowchart LR
 
 ## 1. 업로드 용량 제한 설정하기
 
-`board/src/main/resources/application.properties` 파일 맨 아래에 추가합니다. 기존 마지막 줄 다음에 줄바꿈을 넣고 붙여넣으세요. 요청 전체 한도에는 제목, 본문, 폼 데이터의 구분 정보도 포함됩니다. [Spring Boot multipart 설정](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/servlet/autoconfigure/MultipartProperties.html)
+`board/src/main/resources/application.properties`의 `# JPA` 설정 아래(파일 맨 아래)에 추가합니다. 이미 같은 설정이 들어 있다면 그대로 두면 됩니다. 요청 전체 한도에는 제목, 본문, 폼 데이터의 구분 정보도 포함됩니다. [Spring Boot multipart 설정](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/servlet/autoconfigure/MultipartProperties.html)
 
 ```properties
+# JPA
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=update
+
+# File Upload
 spring.servlet.multipart.max-file-size=1MB
 spring.servlet.multipart.max-request-size=4MB
 ```
@@ -85,21 +90,28 @@ public class QuestionAttachment {
 
 ### 2.2 `Question.java`에 관계 추가하기
 
-`board/src/main/java/com/board/question/Question.java`의 import 부분에 아래 한 줄을 추가합니다.
+`board/src/main/java/com/board/question/Question.java`의 import 부분에 `ArrayList`를 추가합니다.
 
 ```java
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 ```
 
-같은 파일에서 `answerList` 필드 바로 아래에 다음 코드를 붙여넣습니다.
+같은 파일에서 마지막 필드인 `voter` 아래, `Question` 클래스를 닫는 `}` 바로 위에 다음 코드를 추가합니다.
 
 ```java
+    @ManyToMany
+    Set<SiteUser> voter;
+
+    // 아래 필드와 메서드 추가
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionAttachment> attachments = new ArrayList<>();
 
     void addAttachment(String filename, byte[] content) {
         this.attachments.add(new QuestionAttachment(this, filename, content));
     }
+}
 ```
 
 `cascade` 덕분에 질문을 새로 저장하거나 삭제할 때 연결된 파일도 함께 처리됩니다. `orphanRemoval`은 수정 중 목록에서 뺀 파일의 DB 행을 삭제합니다.
@@ -143,12 +155,16 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 ```
 
-같은 파일에서 인터페이스의 마지막 `}` 바로 위에 추가합니다. 이 조회는 같은 질문을 두 탭에서 동시에 수정하거나 삭제할 때, 한 요청이 처리를 마친 뒤 다음 요청이 최신 첨부 목록을 확인하게 합니다.
+같은 파일에서 마지막 `findAll(...)` 선언 아래, 인터페이스를 닫는 `}` 바로 위에 추가합니다. 이 조회는 같은 질문을 두 탭에서 동시에 수정하거나 삭제할 때, 한 요청이 처리를 마친 뒤 다음 요청이 최신 첨부 목록을 확인하게 합니다.
 
 ```java
+    Page<Question> findAll(Specification<Question> spec, Pageable pageable);
+
+    // 아래 메서드 추가
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select q from Question q where q.id = :id")
     Optional<Question> findForUpdate(@Param("id") Integer id);
+}
 ```
 
 ## 3. 폼과 서비스 연결하기
@@ -207,6 +223,9 @@ import org.springframework.web.server.ResponseStatusException;
 기존 `private final QuestionRepository questionRepository;` 바로 아래에 추가합니다.
 
 ```java
+    private final QuestionRepository questionRepository;
+
+    // 아래 필드와 상수 추가
     private final QuestionAttachmentRepository attachmentRepository;
 
     private static final int MAX_ATTACHMENTS = 3;
@@ -236,7 +255,7 @@ import org.springframework.web.server.ResponseStatusException;
     }
 ```
 
-기존 `modify(...)`와 `delete(...)` 메서드를 아래 블록으로 교체합니다. 기존 추천과 검색 메서드는 이 블록 뒤에 이어집니다.
+`getList(int page, String kw)` 메서드 아래의 기존 `modify(Question question, String subject, String content)`와 `delete(Question question)` 메서드를 아래 블록으로 교체합니다. 기존 `vote(...)`와 `search(...)` 메서드는 이 블록 뒤에 그대로 둡니다.
 
 ```java
     @Transactional
@@ -361,10 +380,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 ```
 
-`detail(...)`에서 `return "question_detail";` 바로 위에 추가합니다.
+`detail(...)`에서 `answerHtmlById`를 담는 줄과 `return "question_detail";` 사이에 한 줄을 추가합니다.
 
 ```java
+        model.addAttribute("answerHtmlById", commonUtil.renderAnswerHtmlById(question.getAnswerList()));
         model.addAttribute("attachments", this.questionService.getAttachments(id));
+        return "question_detail";
 ```
 
 `@PostMapping("/create")`가 붙은 기존 등록 메서드를 아래 코드로 교체합니다. `@GetMapping("/create")`가 붙은 메서드는 등록 화면을 여는 데 계속 사용됩니다.
@@ -389,7 +410,7 @@ import org.springframework.http.ResponseEntity;
     }
 ```
 
-기존 수정 GET, 수정 POST, 삭제 GET 메서드를 아래 블록으로 교체합니다. 첫 주석에는 작성자 확인과 기존 값으로 폼을 채우는 역할을 새 코드에 맞춰 설명했습니다. 아래 삭제 메서드는 **POST**로 받으며 5단계에서 삭제 버튼을 그에 맞게 연결합니다.
+기존 `// questionModify 메서드를 추가했다.` 주석과 수정 GET, 수정 POST, 삭제 GET(`questionDelete`) 메서드까지를 아래 블록으로 교체합니다. 그 아래의 `// 추천`(`questionVote`) 메서드는 그대로 둡니다. 첫 주석에는 작성자 확인과 기존 값으로 폼을 채우는 역할을 새 코드에 맞춰 설명했습니다. 아래 삭제 메서드는 **POST**로 받으며 5단계에서 삭제 버튼을 그에 맞게 연결합니다.
 
 ```java
     // 작성자인지 확인한 뒤 기존 제목, 본문, 첨부 목록을 수정 화면에 전달합니다.
@@ -457,10 +478,12 @@ import org.springframework.http.ResponseEntity;
 
 ### 4.2 `AnswerController.java`에서 답변 검증 실패 처리 보완하기
 
-`board/src/main/java/com/board/answer/AnswerController.java`의 `createAnswer(...)`에서 `if (bindingResult.hasErrors())` 블록 안의 `return "question_detail";` 바로 위에 추가합니다. 답변을 비워 제출할 때도 같은 상세 템플릿을 사용하므로, 이 경로에서도 첨부 목록이 필요합니다. [기존 상세 화면의 렌더링 경로](question-detail-markdown-rendering.md)
+`board/src/main/java/com/board/answer/AnswerController.java`의 `createAnswer(...)`에서 `if (bindingResult.hasErrors())` 블록 안의 `answerHtmlById` 줄과 `return "question_detail";` 사이에 한 줄을 추가합니다. 답변을 비워 제출할 때도 같은 상세 템플릿을 사용하므로, 이 경로에서도 첨부 목록이 필요합니다. [기존 상세 화면의 렌더링 경로](question-detail-markdown-rendering.md)
 
 ```java
+            model.addAttribute("answerHtmlById", commonUtil.renderAnswerHtmlById(question.getAnswerList()));
             model.addAttribute("attachments", this.questionService.getAttachments(id));
+            return "question_detail";
 ```
 
 ## 5. 화면에 업로드와 다운로드 추가하기
@@ -516,10 +539,12 @@ import org.springframework.http.ResponseEntity;
 
 ### 5.2 `question_detail.html`에 다운로드 링크와 삭제 폼 추가하기
 
-`board/src/main/resources/templates/question_detail.html`에서 질문 본문을 출력하는 `th:utext="${questionHtml}"` 줄 바로 아래에 추가합니다. 질문 본문 영역 안에서, 답변 반복문보다 위에 넣습니다. 파일명이 HTML로 해석되지 않도록 `th:text`로 표시합니다.
+`board/src/main/resources/templates/question_detail.html`의 질문 카드 안에서 질문 본문을 출력하는 `<div class="card-text" th:utext="${questionHtml}"></div>`와 `<div class="d-flex justify-content-end">` 사이에 첨부파일 영역을 추가합니다. 파일명이 HTML로 해석되지 않도록 `th:text`로 표시합니다.
 
 ```html
-            <section class="mt-3" th:if="${!attachments.isEmpty()}">
+            <div class="card-text" th:utext="${questionHtml}"></div>
+            <!-- 아래 섹션 추가 -->
+            <section class="mt-3" th:if="${attachments != null and !attachments.isEmpty()}">
                 <h3 class="h6">첨부파일</h3>
                 <ul class="mb-2">
                     <li th:each="attachment : ${attachments}">
@@ -529,16 +554,17 @@ import org.springframework.http.ResponseEntity;
                     </li>
                 </ul>
             </section>
+            <div class="d-flex justify-content-end">
 ```
 
-같은 파일에서 `/question/delete/`를 가리키는 기존 질문 삭제 링크(`<a ...>...</a>`) 한 개를 아래 폼으로 교체합니다. `th:action`과 POST 방식의 폼을 쓰면 Spring Security와 통합된 Thymeleaf가 숨은 CSRF 필드를 생성합니다. 아래쪽 `/answer/delete/` 링크는 답변 삭제용입니다.
+같은 파일의 질문 버튼 영역에서 `수정` 링크 바로 아래에 있는 질문 삭제 링크(`th:data-uri="@{|/question/delete/${question.id}|}"`) 한 개를 아래 폼으로 교체합니다. `th:action`과 POST 방식의 폼을 쓰면 Spring Security와 통합된 Thymeleaf가 숨은 CSRF 필드를 생성합니다. 아래쪽 답변 카드의 `/answer/delete/` 링크와 파일 하단 `<script>`의 `.delete` 이벤트 코드는 답변 삭제에 계속 사용하므로 그대로 둡니다.
 
 ```html
                 <form th:action="@{/question/delete/{id}(id=${question.id})}" method="post"
                       class="d-inline" sec:authorize="isAuthenticated()"
                       th:if="${question.author != null and #authentication.name == question.author.username}"
                       onsubmit="return confirm('정말로 삭제하시겠습니까?');">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">삭제</button>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">삭제</button>
                 </form>
 ```
 
@@ -579,3 +605,4 @@ Windows PowerShell에서는 `board` 폴더로 이동한 뒤 `.\gradlew.bat bootR
 ## 개정이력
 
 - `2026-11-26 15:27:10` KST — 현재 질문 화면을 기준으로 파일 첨부 설계, 적용 코드, 실행 및 확인 절차를 작성했습니다.
+- `2026-11-27 09:06:32` KST — 현재 소스코드에 맞춰 `Question.java` 삽입 위치(`voter` 아래)를 바로잡고, 각 단계의 삽입·교체 지점에 주변 코드 맥락을 보완했습니다.

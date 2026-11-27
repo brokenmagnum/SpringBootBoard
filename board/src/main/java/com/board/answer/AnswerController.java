@@ -40,6 +40,7 @@ public class AnswerController {
             model.addAttribute("question", question);
             model.addAttribute("questionHtml", commonUtil.markdown(question.getContent()));
             model.addAttribute("answerHtmlById", commonUtil.renderAnswerHtmlById(question.getAnswerList()));
+            model.addAttribute("attachments", this.questionService.getAttachments(id));
             return "question_detail";
         }
         Answer answer = this.answerService.create(question, answerForm.getContent(), siteUser);
