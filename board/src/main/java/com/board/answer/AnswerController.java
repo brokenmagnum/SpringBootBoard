@@ -1,24 +1,26 @@
 package com.board.answer;
 
-import com.board.question.Question;
-import com.board.question.QuestionService;
-import lombok.RequiredArgsConstructor;
+import java.security.Principal;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import jakarta.validation.Valid;
-import org.springframework.validation.BindingResult;
-import java.security.Principal;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.board.CommonUtil;
+import com.board.question.Question;
+import com.board.question.QuestionService;
 import com.board.user.SiteUser;
 import com.board.user.UserService;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.server.ResponseStatusException;
-import com.board.CommonUtil;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RequestMapping("/answer")
 @RequiredArgsConstructor

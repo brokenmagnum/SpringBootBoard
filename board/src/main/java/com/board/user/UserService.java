@@ -1,15 +1,13 @@
 package com.board.user;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Optional;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.board.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;
-
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
