@@ -1,5 +1,6 @@
 # SpringBootBoard
 + http://localhost:8080/question/list
++ GCP VM: http://35.212.220.128:8080/
 + ID: user
 + PW: password
 + 점프투 스프링 부트 책을 따라가며 게시판을 만들어보고 있습니다.
